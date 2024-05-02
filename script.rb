@@ -14,21 +14,45 @@ module Mastermind
   # board class to hold methods related directly to board
   class Board
     attr_accessor :maker, :breaker
+    attr_writer :secret_code
 
     def set_breaker
-      breaker = maker == 'human' ? 'computer' : 'human'
+      @breaker = maker == 'human' ? 'computer' : 'human'
       puts "maker: #{maker} breaker: #{breaker}"
+    end
+
+    def secret_code
+      secret_code = maker == 'computer' ? Computer.new.sc_generator : Human.new.sc_getter
+      puts "secret code check: #{secret_code}"
+      secret_code
     end
   end
 
   # human class to hold all user information and methods
   class Human
+    def sc_getter
+      puts "#{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
+      code = []
+      0.upto(3) { |i| code[i] = checked_color_input }
+      code
+    end
+
+    def checked_color_input
+      color = gets.chomp
+      if color[0].match(/r|g|b|m|c|y/i)
+        color[0]
+      else
+        checked_color_input
+      end
+    end
   end
 
   # computer class to hold all computer player information and methods
   class Computer
-    def secret_code_generator
-      0.upto(3) { puts COLORS[rand(0..5)] }
+    def sc_generator
+      code = []
+      0.upto(3) { |i| code[i] = COLORS[rand(0..5)][0] }
+      code
     end
   end
 
@@ -49,6 +73,7 @@ module Mastermind
       board = Board.new
       board.maker = maker
       board.set_breaker
+      board.secret_code
     end
   end
 end
@@ -58,3 +83,4 @@ Mastermind::Game.new.start_game
 # puts a.maker
 # puts a.breaker
 # p Mastermind::Board.new.maker
+# Mastermind::Computer.new.sc_generator
