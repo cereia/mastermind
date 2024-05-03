@@ -13,23 +13,30 @@ module Mastermind
   COLORS = %w[red green blue magenta cyan yellow].freeze
   # board class to hold methods related directly to board
   class Board
-    attr_accessor :maker, :breaker
-    attr_writer :secret_code
+    attr_reader :maker, :breaker
 
-    def set_breaker
-      @breaker = maker == 'human' ? 'computer' : 'human'
+    def initialize(player1, player2)
+      @maker = player1.new(self)
+      @breaker = player2.new(self)
       puts "maker: #{maker} breaker: #{breaker}"
     end
 
     def secret_code
-      secret_code = maker == 'computer' ? Computer.new.sc_generator : Human.new.sc_getter
-      puts "secret code check: #{secret_code}"
-      secret_code
+      @secret_code = maker.instance_of?(Computer) ? @maker.sc_generator : @maker.sc_getter
+      puts "secret code check: #{@secret_code}"
+      @secret_code
+    end
+  end
+
+  # player class
+  class Player
+    def initialize(game)
+      @game = game
     end
   end
 
   # human class to hold all user information and methods
-  class Human
+  class Human < Player
     def sc_getter
       puts "#{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
       code = []
@@ -45,41 +52,47 @@ module Mastermind
         checked_color_input
       end
     end
+
+    def to_s
+      'Human'
+    end
   end
 
   # computer class to hold all computer player information and methods
-  class Computer
+  class Computer < Player
     def sc_generator
       code = []
       0.upto(3) { |i| code[i] = COLORS[rand(0..5)][0] }
       code
     end
+
+    def to_s
+      'Computer'
+    end
   end
 
   # game class that holds methods related to interactivity and playing the game
   class Game
-    def start_game
+    def initialize
       puts 'Would you like to be the codemaker? Y/N'
       answer = gets.chomp
-      start_game unless answer.match(/y|n/i)
+      initialize unless answer.match(/y|n/i)
       if answer[0].match(/y/i)
-        create_game('human')
+        create_game(Human, Computer)
       elsif answer[0].match(/n/i)
-        create_game('computer')
+        create_game(Computer, Human)
       end
     end
 
-    def create_game(maker)
-      board = Board.new
-      board.maker = maker
-      board.set_breaker
+    def create_game(maker, breaker)
+      board = Board.new(maker, breaker)
       board.secret_code
     end
   end
 end
 
 # Mastermind::Game.new
-Mastermind::Game.new.start_game
+Mastermind::Game.new
 # puts a.maker
 # puts a.breaker
 # p Mastermind::Board.new.maker
