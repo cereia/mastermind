@@ -20,8 +20,9 @@ module Mastermind
 
     def initialize
       determine_maker
-      @round = 0
+      @round = 1
       @guess = []
+      play_round
     end
 
     def determine_maker
@@ -45,11 +46,41 @@ module Mastermind
 
     def secret_code_maker
       @secret_code = maker.instance_of?(Computer) ? @maker.sc_generator : @maker.sc_getter
-      show_code if maker.instance_of?(Human)
+      puts show_code if maker.instance_of?(Human)
+    end
+
+    def play_round
+      puts show_code
+      while @round < 13
+        puts "Round #{@round} guess: #{guess_getter}"
+        # puts "--------Round #{@round}--------"
+        puts check_guess(@secret_code == @guess)
+        break if @secret_code == @guess
+
+        @round += 1
+      end
+    end
+
+    def check_guess(comparison)
+      if comparison
+        "#{breaker} guessed the #{show_code} in #{@round} round(s)!"
+      elsif rounds_left.zero?
+        "That was the last round :(\nHere's the #{show_code}"
+      else
+        "That wasn't it. Please try again! #{rounds_left} guesses left!"
+      end
+    end
+
+    def rounds_left
+      13 - (@round + 1)
+    end
+
+    def guess_getter
+      @guess = breaker.make_guess
     end
 
     def show_code
-      puts "secret code: #{@secret_code}"
+      "secret code: #{@secret_code}"
     end
   end
 
