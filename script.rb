@@ -17,6 +17,7 @@ module Mastermind
   # game class that holds methods related to interactivity and playing the game
   class Game
     attr_reader :maker, :breaker
+    attr_accessor :guess
 
     def initialize
       determine_maker
@@ -41,12 +42,8 @@ module Mastermind
       @breaker = breaker.new(self)
       puts "Codemaker: #{@maker}\nCodebreaker: #{@breaker}"
       puts "\n"
-      secret_code_maker
-    end
-
-    def secret_code_maker
-      @secret_code = maker.instance_of?(Computer) ? @maker.sc_generator : @maker.sc_getter
-      puts show_code if maker.instance_of?(Human)
+      @secret_code = @maker.instance_of?(Computer) ? @maker.sc_generator : @maker.sc_getter
+      puts show_code if @maker.instance_of?(Human)
     end
 
     def play_round
@@ -95,8 +92,7 @@ module Mastermind
   class Human < Player
     def sc_getter
       puts "#{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
-      code = []
-      do_four_times(code)
+      do_four_times([])
     end
 
     def checked_color_input
@@ -111,8 +107,7 @@ module Mastermind
     def make_guess
       puts 'Please guess the secret code.'
       puts "#{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
-      guess = []
-      do_four_times(guess)
+      do_four_times(@game.guess)
     end
 
     def do_four_times(arr)
@@ -128,13 +123,11 @@ module Mastermind
   # computer class to hold all computer player information and methods
   class Computer < Player
     def sc_generator
-      code = []
-      do_four_times(code)
+      do_four_times([])
     end
 
     def make_guess
-      guess = []
-      do_four_times(guess)
+      do_four_times(@game.guess)
     end
 
     def do_four_times(arr)
@@ -150,6 +143,7 @@ end
 
 Mastermind::Game.new
 # a = Mastermind::Game.new
+# p a.guess
 # a.show_code
 # puts a.maker
 # puts a.breaker
