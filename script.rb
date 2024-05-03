@@ -4,9 +4,12 @@
 # 6 colors
 # code is 4 long with a specific order
 # after every guess, there has to be an indicator
-#   correct = black/colored indicator
-#   correct color, wrong place = white indicator
-#   else = nothing
+#   correct = black/colored indicator (*)
+#   correct color, wrong place = white indicator (o)
+#   else = nothing or (x)
+#   show an array with indicators with shuffle called so indicator doesn't give away info
+#   eg: code: [r, r, g, c] guess: [r, g, b, b]
+#       indicator: [*, o, x, x] indicator.shuffle: [x, o, x, *]
 
 # module to contain all the code necessary for the game
 module Mastermind
@@ -16,9 +19,15 @@ module Mastermind
     attr_reader :maker, :breaker
 
     def initialize
+      determine_maker
+      @round = 0
+      @guess = []
+    end
+
+    def determine_maker
       puts 'Would you like to be the codemaker? Y/N'
       answer = gets.chomp
-      initialize unless answer.match(/y|n/i)
+      determine_maker unless answer.match(/y|n/i)
       if answer[0].match(/y/i)
         create_board(Human, Computer)
       elsif answer[0].match(/n/i)
@@ -31,13 +40,16 @@ module Mastermind
       @breaker = breaker.new(self)
       puts "Codemaker: #{@maker}\nCodebreaker: #{@breaker}"
       puts "\n"
-      secret_code
+      secret_code_maker
     end
 
-    def secret_code
+    def secret_code_maker
       @secret_code = maker.instance_of?(Computer) ? @maker.sc_generator : @maker.sc_getter
-      puts "secret code check: #{@secret_code}" if maker.instance_of?(Human)
-      @secret_code
+      show_code if maker.instance_of?(Human)
+    end
+
+    def show_code
+      puts "secret code: #{@secret_code}"
     end
   end
 
@@ -53,8 +65,7 @@ module Mastermind
     def sc_getter
       puts "#{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
       code = []
-      0.upto(3) { |i| code[i] = checked_color_input }
-      code
+      do_four_times(code)
     end
 
     def checked_color_input
@@ -66,6 +77,18 @@ module Mastermind
       end
     end
 
+    def make_guess
+      puts 'Please guess the secret code.'
+      puts "#{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
+      guess = []
+      do_four_times(guess)
+    end
+
+    def do_four_times(arr)
+      0.upto(3) { |i| arr[i] = checked_color_input }
+      arr
+    end
+
     def to_s
       'Human'
     end
@@ -75,8 +98,17 @@ module Mastermind
   class Computer < Player
     def sc_generator
       code = []
-      0.upto(3) { |i| code[i] = COLORS[rand(0..5)][0] }
-      code
+      do_four_times(code)
+    end
+
+    def make_guess
+      guess = []
+      do_four_times(guess)
+    end
+
+    def do_four_times(arr)
+      0.upto(3) { |i| arr[i] = COLORS[rand(0..5)][0] }
+      arr
     end
 
     def to_s
@@ -85,8 +117,9 @@ module Mastermind
   end
 end
 
-# Mastermind::Game.new
 Mastermind::Game.new
+# a = Mastermind::Game.new
+# a.show_code
 # puts a.maker
 # puts a.breaker
 # p Mastermind::Board.new.maker
