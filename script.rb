@@ -49,7 +49,7 @@ module Mastermind
     def play_round
       puts show_code
       while @round < 13
-        puts "Round #{@round} guess: #{guess_getter}"
+        puts "Round #{@round} guess: #{breaker.make_guess}"
         # puts "--------Round #{@round}--------"
         puts check_guess(@secret_code == @guess)
         break if @secret_code == @guess
@@ -64,16 +64,46 @@ module Mastermind
       elsif rounds_left.zero?
         "That was the last round :(\nHere's the #{show_code}"
       else
+        create_indicator
+        puts "Indicator: #{@indicator}"
         "That wasn't it. Please try again! #{rounds_left} guesses left!"
       end
     end
 
-    def rounds_left
-      13 - (@round + 1)
+    # check for exact matches first! then remove those from copy of the secret code
+    def create_indicator
+      code = @secret_code.dup
+      exact_matches(code)
+      non_exact_matches(code)
+      @indicator.shuffle!
     end
 
-    def guess_getter
-      @guess = breaker.make_guess
+    def exact_matches(sc_dup)
+      @indicator = []
+      @guess.each_index do |index|
+        if @guess[index] == @secret_code[index]
+          @indicator.push('*')
+          @guess[index] = nil
+          sc_dup[index] = nil
+        end
+        next
+      end
+    end
+
+    def non_exact_matches(sc_dup)
+      @guess.compact.each do |element|
+        if sc_dup.include?(element)
+          sc_dup[sc_dup.index(element)] = nil
+          @indicator.push('o')
+        else
+          @indicator.push('x')
+        end
+      end
+      @indicator
+    end
+
+    def rounds_left
+      13 - (@round + 1)
     end
 
     def show_code
