@@ -47,10 +47,8 @@ module Mastermind
     end
 
     def play_round
-      puts show_code
       while @round < 13
         puts "Round #{@round} guess: #{breaker.make_guess}"
-        # puts "--------Round #{@round}--------"
         puts check_guess(@secret_code == @guess)
         break if @secret_code == @guess
 
@@ -65,12 +63,12 @@ module Mastermind
         "That was the last round :(\nHere's the #{show_code}"
       else
         create_indicator
-        puts "Indicator: #{@indicator}"
+        puts "*: correct\no: correct color\nx: incorrect\nIndicator: #{@indicator}"
         "That wasn't it. Please try again! #{rounds_left} guesses left!"
       end
     end
 
-    # check for exact matches first! then remove those from copy of the secret code
+    # create indicator checks for exact matches first before checking for other matches
     def create_indicator
       code = @secret_code.dup
       exact_matches(code)
@@ -172,10 +170,3 @@ module Mastermind
 end
 
 Mastermind::Game.new
-# a = Mastermind::Game.new
-# p a.guess
-# a.show_code
-# puts a.maker
-# puts a.breaker
-# p Mastermind::Board.new.maker
-# Mastermind::Computer.new.sc_generator
