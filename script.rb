@@ -54,6 +54,7 @@ module Mastermind
 
         @round += 1
       end
+      restart
     end
 
     def check_guess(comparison)
@@ -98,6 +99,17 @@ module Mastermind
         end
       end
       @indicator
+    end
+
+    def restart
+      puts 'Would you like to play again? Y/N'
+      answer = gets.chomp
+      restart unless answer.match(/y|n/i)
+      if answer.match(/y/i)
+        determine_maker
+      elsif answer.match(/n/i)
+        puts 'Thank you for playing!'
+      end
     end
 
     def rounds_left
