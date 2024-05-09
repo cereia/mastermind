@@ -16,7 +16,7 @@ module Mastermind
   COLORS = %w[red green blue magenta cyan yellow].freeze
   # game class that holds methods related to interactivity and playing the game
   class Game
-    attr_reader :maker, :breaker
+    attr_reader :maker, :breaker, :round
     attr_accessor :guess
 
     def initialize
@@ -56,7 +56,7 @@ module Mastermind
     def play_round
       while @round < 13
         puts "Round #{@round} guess: #{breaker.make_guess}"
-        puts check_guess(@secret_code == @guess)
+        check_guess(@secret_code == @guess)
         break if @secret_code == @guess
 
         @round += 1
@@ -66,13 +66,13 @@ module Mastermind
 
     def check_guess(comparison)
       if comparison
-        "#{breaker} guessed the #{show_code} in #{@round} round(s)!"
+        puts "#{breaker} guessed the #{show_code} in #{@round} round(s)!"
       elsif rounds_left.zero?
-        "That was the last round :(\nHere's the #{show_code}"
+        puts "That was the last round :(\nHere's the #{show_code}"
       else
         create_indicator
         puts "*: correct\no: correct color\nx: incorrect\nIndicator: #{@indicator}"
-        "That wasn't it. Please try again! #{rounds_left} guesses left!"
+        puts "That wasn't it. Please try again! #{rounds_left} guesses left!"
       end
     end
 
@@ -174,7 +174,22 @@ module Mastermind
     end
 
     def make_guess
-      do_four_times(@game.guess)
+      puts "This is round: #{@game.round}" if @game.round < 4
+      if @game.round < 4
+        @game.guess = first_three[@game.round - 1]
+      else
+        do_four_times(@game.guess)
+      end
+    end
+
+    def first_three
+      guesses = []
+      i = 0
+      while i < COLORS.length - 1
+        guesses.push([COLORS[i][0], COLORS[i][0], COLORS[i + 1][0], COLORS[i + 1][0]])
+        i += 2
+      end
+      guesses
     end
 
     def do_four_times(arr)
