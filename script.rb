@@ -30,13 +30,13 @@ module Mastermind
       puts 'Would you like to be the codemaker? Y/N'
       answer = gets.chomp
       if answer.match(/y|n/i)
-        input_checker(answer)
+        maker_input_checker(answer)
       else
         determine_maker
       end
     end
 
-    def input_checker(input)
+    def maker_input_checker(input)
       if input.match(/y/i)
         create_board(Human, Computer)
       else
@@ -144,7 +144,7 @@ module Mastermind
 
     def checked_color_input
       color = gets.chomp
-      if color[0].match(/r|g|b|m|c|y/i)
+      if color.match(/r|g|b|m|c|y/i)
         color[0]
       else
         checked_color_input
