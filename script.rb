@@ -29,10 +29,17 @@ module Mastermind
     def determine_maker
       puts 'Would you like to be the codemaker? Y/N'
       answer = gets.chomp
-      determine_maker unless answer.match(/y|n/i)
-      if answer[0].match(/y/i)
+      if answer.match(/y|n/i)
+        input_checker(answer)
+      else
+        determine_maker
+      end
+    end
+
+    def input_checker(input)
+      if input.match(/y/i)
         create_board(Human, Computer)
-      elsif answer[0].match(/n/i)
+      else
         create_board(Computer, Human)
       end
     end
