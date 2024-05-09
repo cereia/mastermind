@@ -113,7 +113,7 @@ module Mastermind
       answer = gets.chomp
       restart unless answer.match(/y|n/i)
       if answer.match(/y/i)
-        determine_maker
+        Game.new
       elsif answer.match(/n/i)
         puts 'Thank you for playing!'
       end
