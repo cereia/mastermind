@@ -16,7 +16,7 @@ module Mastermind
   COLORS = %w[red green blue magenta cyan yellow].freeze
   # game class that holds methods related to interactivity and playing the game
   class Game
-    attr_reader :maker, :breaker, :round
+    attr_reader :maker, :breaker, :round, :indicator
     attr_accessor :guess
 
     def initialize
@@ -70,7 +70,7 @@ module Mastermind
       elsif rounds_left.zero?
         puts "That was the last round :(\nHere's the #{show_code}"
       else
-        create_indicator
+        create_indicator && breaker.save_guess(@guess) if breaker.instance_of?(Computer)
         puts "*: correct\no: correct color\nx: incorrect\nIndicator: #{@indicator}"
         puts "That wasn't it. Please try again! #{rounds_left} guesses left!"
       end
@@ -79,25 +79,26 @@ module Mastermind
     # create indicator checks for exact matches first before checking for other matches
     def create_indicator
       code = @secret_code.dup
-      exact_matches(code)
-      non_exact_matches(code)
+      guess = @guess.dup
+      exact_matches(code, guess)
+      non_exact_matches(code, guess)
       @indicator.shuffle!
     end
 
-    def exact_matches(sc_dup)
+    def exact_matches(sc_dup, guess_dup)
       @indicator = []
-      @guess.each_index do |index|
-        if @guess[index] == @secret_code[index]
+      guess_dup.each_index do |index|
+        if guess_dup[index] == @secret_code[index]
           @indicator.push('*')
-          @guess[index] = nil
+          guess_dup[index] = nil
           sc_dup[index] = nil
         end
         next
       end
     end
 
-    def non_exact_matches(sc_dup)
-      @guess.compact.each do |element|
+    def non_exact_matches(sc_dup, guess_dup)
+      guess_dup.compact.each do |element|
         if sc_dup.include?(element)
           sc_dup[sc_dup.index(element)] = nil
           @indicator.push('o')
@@ -169,6 +170,11 @@ module Mastermind
 
   # computer class to hold all computer player information and methods
   class Computer < Player
+    def initialize(game)
+      super(game)
+      @saved_guesses = []
+    end
+
     def sc_generator
       do_four_times([])
     end
@@ -180,6 +186,14 @@ module Mastermind
       else
         do_four_times(@game.guess)
       end
+    end
+
+    def save_guess(guess)
+      if @game.indicator.include?('o') || @game.indicator.include?('*')
+        @saved_guesses.push([guess, @game.indicator])
+      end
+      puts "saved guesses: #{@saved_guesses}"
+      @saved_guesses
     end
 
     def first_three
