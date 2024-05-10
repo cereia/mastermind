@@ -29,24 +29,18 @@ module Mastermind
     def determine_maker
       puts 'Would you like to be the codemaker? Y/N'
       answer = gets.chomp
-      if answer.match(/y|n/i)
-        maker_input_checker(answer)
+      if answer.match(/y/i)
+        create_board(Human)
+      elsif answer.match(/n/i)
+        create_board(Computer)
       else
         determine_maker
       end
     end
 
-    def maker_input_checker(input)
-      if input.match(/y/i)
-        create_board(Human, Computer)
-      else
-        create_board(Computer, Human)
-      end
-    end
-
-    def create_board(maker, breaker)
+    def create_board(maker)
       @maker = maker.new(self)
-      @breaker = breaker.new(self)
+      @breaker = @maker.instance_of?(Human) ? Computer.new(self) : Human.new(self)
       puts "Codemaker: #{@maker}\nCodebreaker: #{@breaker}"
       puts "\n"
       @secret_code = @maker.instance_of?(Computer) ? @maker.sc_generator : @maker.sc_getter
@@ -56,7 +50,8 @@ module Mastermind
     def play_round
       while @round < 13
         puts "Round #{@round} guess: #{breaker.make_guess}"
-        check_guess(@secret_code == @guess)
+        show_guess_and_secret_code_comparison_result(@secret_code == @guess)
+        puts "\n"
         break if @secret_code == @guess
 
         @round += 1
@@ -64,14 +59,15 @@ module Mastermind
       restart
     end
 
-    def check_guess(comparison)
+    def show_guess_and_secret_code_comparison_result(comparison)
       if comparison
         puts "#{breaker} guessed the #{show_code} in #{@round} round(s)!"
       elsif rounds_left.zero?
         puts "That was the last round :(\nHere's the #{show_code}"
       else
-        create_indicator && breaker.save_guess(@guess) if breaker.instance_of?(Computer)
+        create_indicator
         puts "*: correct\no: correct color\nx: incorrect\nIndicator: #{@indicator}"
+        breaker.save_guess(@guess) if breaker.instance_of?(Computer)
         puts "That wasn't it. Please try again! #{rounds_left} guesses left!"
       end
     end
@@ -180,9 +176,9 @@ module Mastermind
     end
 
     def make_guess
-      puts "This is round: #{@game.round}" if @game.round < 4
+      # puts "This is round: #{@game.round}" if @game.round < 4
       if @game.round < 4
-        @game.guess = first_three[@game.round - 1]
+        @game.guess = first_three_guesses[@game.round - 1]
       else
         do_four_times(@game.guess)
       end
@@ -190,13 +186,14 @@ module Mastermind
 
     def save_guess(guess)
       if @game.indicator.include?('o') || @game.indicator.include?('*')
-        @saved_guesses.push([guess, @game.indicator])
+        @saved_guesses.push([guess.dup, @game.indicator])
       end
-      puts "saved guesses: #{@saved_guesses}"
-      @saved_guesses
+      puts 'Here are the saved guesses:'
+      @saved_guesses.map { |guess_in_saved| puts "#{guess_in_saved}\n" }
+      # @saved_guesses
     end
 
-    def first_three
+    def first_three_guesses
       guesses = []
       i = 0
       while i < COLORS.length - 1
