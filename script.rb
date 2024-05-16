@@ -67,7 +67,7 @@ module Mastermind
       else
         create_indicator
         puts "*: correct\no: correct color\nx: incorrect\nIndicator: #{@indicator}"
-        breaker.save_guess(@guess) if breaker.instance_of?(Computer)
+        breaker.count_num_of_elements_in_indicator if breaker.instance_of?(Computer)
         puts "That wasn't it. Please try again! #{rounds_left} guesses left!"
       end
     end
@@ -172,7 +172,7 @@ module Mastermind
       @num_wrong = 0
       @num_okay = 0
       @num_perfect = 0
-      # @matched = 0
+      @all_colors_found = false
       @possibilities = []
       create_possibilities_array
     end
@@ -192,7 +192,9 @@ module Mastermind
     end
 
     def sc_generator
-      pick_4_random_colors([])
+      arr = []
+      0.upto(3) { |i| arr[i] = COLORS[rand(0..5)][0] }
+      arr
     end
 
     # if indicator shows all x -> remove letter(s) from all possibilities
@@ -203,10 +205,10 @@ module Mastermind
     #
 
     def make_guess
-      if @game.round < 4
+      if @game.round < 4 && @all_colors_found == false
         @game.guess = first_three_guesses[@game.round - 1]
       else
-        pick_4_random_colors(@game.guess)
+        pick_4_colors_from_possibilities(@game.guess)
       end
     end
 
@@ -214,7 +216,7 @@ module Mastermind
       @num_wrong = count_num_of_element('x')
       @num_okay = count_num_of_element('o')
       @num_perfect = count_num_of_element('*')
-      remove_possibilities
+      remove_possibilities_if_all_wrong_or_no_wrong
       puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"
     end
 
@@ -222,25 +224,17 @@ module Mastermind
       @game.indicator.count { |element| element.include?(indicator_symbol)}
     end
 
-    def remove_possibilities
+    def remove_possibilities_if_all_wrong_or_no_wrong
       if @num_wrong == 4
-        puts "colors to delete #{@game.guess.uniq}"
+        # remove the guess colors from the possibilities array
         @possibilities = @possibilities.map { |i| i - @game.guess.uniq }
+      elsif @num_wrong.zero?
+        @all_colors_found = true
+        # remove all except the guess colors from the possibilities array
+        @possibilities = @possibilities.map { |i| @game.guess.uniq & i }
       end
       puts 'possibilities:'
       @possibilities.map { |i| puts "#{i}\n" }
-    end
-
-    def save_guess(guess)
-      if @game.indicator.include?('o') || @game.indicator.include?('*')
-        @saved_guesses.push([guess.dup, @game.indicator])
-      end
-      puts 'Here are the saved guesses:'
-      # @matched = @game.indicator.count { |element| element.include?('o') || element.include?('*') }
-      # puts "match: #{@matched}"
-      count_num_of_elements_in_indicator
-      @saved_guesses.map { |guess_in_saved| puts "#{guess_in_saved}\n" }
-      # @saved_guesses
     end
 
     def first_three_guesses
@@ -253,8 +247,8 @@ module Mastermind
       guesses
     end
 
-    def pick_4_random_colors(arr)
-      0.upto(3) { |i| arr[i] = COLORS[rand(0..5)][0] }
+    def pick_4_colors_from_possibilities(arr)
+      0.upto(3) { |i| arr[i] = @possibilities[i][rand(0..@possibilities[i].length - 1)] }
       arr
     end
 
