@@ -169,6 +169,9 @@ module Mastermind
     def initialize(game)
       super(game)
       @saved_guesses = []
+      @num_wrong = 0
+      @num_okay = 0
+      @num_perfect = 0
       # @matched = 0
       @possibilities = []
       create_possibilities_array
@@ -200,8 +203,6 @@ module Mastermind
     #
 
     def make_guess
-      puts 'possibilities:'
-      @possibilities.map { |i| puts "#{i}\n" }
       if @game.round < 4
         @game.guess = first_three_guesses[@game.round - 1]
       else
@@ -209,18 +210,25 @@ module Mastermind
       end
     end
 
-    def remove_possibilities
-      num_wrong = count_num_of_element('x')
-      num_okay =  count_num_of_element('o')
-      num_perfect = count_num_of_element('*')
-      if num_wrong == 4
-        puts 'need to delete these colors from possibilities'
-      end
-      puts "x's #{num_wrong}\no's #{num_okay}\n*'s #{num_perfect}"
+    def count_num_of_elements_in_indicator
+      @num_wrong = count_num_of_element('x')
+      @num_okay = count_num_of_element('o')
+      @num_perfect = count_num_of_element('*')
+      remove_possibilities
+      puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"
     end
 
     def count_num_of_element(indicator_symbol)
       @game.indicator.count { |element| element.include?(indicator_symbol)}
+    end
+
+    def remove_possibilities
+      if @num_wrong == 4
+        puts "colors to delete #{@game.guess.uniq}"
+        @possibilities = @possibilities.map { |i| i - @game.guess.uniq }
+      end
+      puts 'possibilities:'
+      @possibilities.map { |i| puts "#{i}\n" }
     end
 
     def save_guess(guess)
@@ -230,7 +238,7 @@ module Mastermind
       puts 'Here are the saved guesses:'
       # @matched = @game.indicator.count { |element| element.include?('o') || element.include?('*') }
       # puts "match: #{@matched}"
-      remove_possibilities
+      count_num_of_elements_in_indicator
       @saved_guesses.map { |guess_in_saved| puts "#{guess_in_saved}\n" }
       # @saved_guesses
     end
