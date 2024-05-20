@@ -43,7 +43,7 @@ module Mastermind
       @breaker = @maker.instance_of?(Human) ? Computer.new(self) : Human.new(self)
       puts "Codemaker: #{@maker}\nCodebreaker: #{@breaker}"
       puts "\n"
-      @secret_code = @maker.instance_of?(Computer) ? @maker.sc_generator : @maker.sc_getter
+      @secret_code = @maker.instance_of?(Computer) ? @maker.sc_generator([]) : @maker.sc_getter
       puts show_code if @maker.instance_of?(Human)
     end
 
@@ -177,22 +177,13 @@ module Mastermind
       create_possibilities_array
     end
 
-    def create_possibilities
-      arr = []
-      i = 0
-      while arr.length < COLORS.length
-        arr.push COLORS[i][0]
-        i += 1
-      end
-      arr
-    end
-
     def create_possibilities_array
-      0.upto(3) { |i| @possibilities[i] = create_possibilities }
+      0.upto(3) do |i|
+        @possibilities[i] = COLORS.map { |color| color[0] }
+      end
     end
 
-    def sc_generator
-      arr = []
+    def sc_generator(arr)
       0.upto(3) { |i| arr[i] = COLORS[rand(0..5)][0] }
       arr
     end
@@ -219,6 +210,8 @@ module Mastermind
         picked = pick_4_colors_from_possibilities(@game.guess)
         check_guess_against_saved_guesses(picked)
       end
+      @saved_guesses.push(@game.guess.dup)
+      @game.guess
     end
 
     def check_guess_against_saved_guesses(guess)
@@ -227,8 +220,8 @@ module Mastermind
         picked = pick_4_colors_from_possibilities(@game.guess)
         check_guess_against_saved_guesses(picked)
       else
-        puts 'saved guesses:'
-        @saved_guesses.map { |i| puts "#{i}\n" }
+        puts 'saved guesses:'                                     # for testing only
+        @saved_guesses.map { |i| puts "#{i}\n" }                  # for testing only
         guess
       end
     end
@@ -237,10 +230,11 @@ module Mastermind
       @num_wrong = count_num_of_element('x')
       @num_okay = count_num_of_element('o')
       @num_perfect = count_num_of_element('*')
-      remove_possibilities_if_all_wrong_or_no_wrong
-      remove_possibilities_if_okay_and_no_perfect
-      puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"
-      puts 'possibilities:'
+      remove_if_all_wrong_or_no_wrong
+      remove_if_okay_and_no_perfect if @num_okay.positive? && @num_perfect.zero?
+      remove_if_perfect_and_no_okay if @game.round < 4 && @num_perfect.positive? && @num_okay.zero?
+      puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"   # for testing only
+      puts 'possibilities:'                                             # for testing only
       @possibilities.each_index { |i| puts "#{i}: #{@possibilities[i]}\n" }
     end
 
@@ -248,22 +242,34 @@ module Mastermind
       @game.indicator.count { |element| element.include?(indicator_symbol)}
     end
 
-    def remove_possibilities_if_all_wrong_or_no_wrong
+    def remove_if_all_wrong_or_no_wrong
       if @num_wrong == 4
         # remove the guess colors from the possibilities array
         @possibilities = @possibilities.map { |possibility_arr| possibility_arr - @game.guess.uniq }
       elsif @num_wrong.zero?
         @all_colors_found = true
-        @saved_guesses.push(@game.guess.dup)
         # remove all except the guess colors from the possibilities array
         @possibilities = @possibilities.map { |possibility_arr| @game.guess.uniq & possibility_arr }
       end
     end
 
-    def remove_possibilities_if_okay_and_no_perfect
-      return unless @num_okay.positive? && @num_perfect.zero?
-
+    def remove_if_okay_and_no_perfect
       @possibilities.each_index { |index| @possibilities[index].delete(@game.guess[index]) }
+    end
+
+    def remove_if_perfect_and_no_okay
+      hash = create_hash_of_perfect_colors_and_indices
+      hash.each do |key, val|
+        @possibilities.each_index { |idx| @possibilities[idx].delete(key) unless val.include?(idx) }
+      end
+    end
+
+    def create_hash_of_perfect_colors_and_indices
+      @game.guess.each_with_object({}) do |value, result|
+        arr = []
+        @game.guess.each_index { |idx| result[value] = arr.push(idx) if value == @game.guess[idx] }
+        result
+      end
     end
 
     def first_three_guesses
