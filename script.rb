@@ -202,13 +202,34 @@ module Mastermind
     #   [rrgg] -> [xoox] -> remove r from 1 and 2; remove g from 3 and 4
     # if indicator shows *x/** -> remove letter(s) from possibilities that aren't letter's index
     #   [rrgg] -> [**xx] -> remove r from 3/4; remove g from 1/2
-    #
+
+    # after removing possibilities/first 3 guesses: has to pick a certain number of colors per pair
+    # code = [rggc]
+    # [bbcc] -> [xxx*] -> pick 1 color
+    # [ggmm] -> [*oxx] -> pick 2 colors
+    # [rryy] -> [*xxx] -> pick 1 color
+    # guess 4 ex: [bggy] -> alphabetical and follows pick rules
 
     def make_guess
       if @game.round < 4 && @all_colors_found == false
         @game.guess = first_three_guesses[@game.round - 1]
+      # elsif @all_colors_found == true
+      #   check_guess_against_saved_guesses(@game.guess.shuffle!)
       else
-        pick_4_colors_from_possibilities(@game.guess)
+        picked = pick_4_colors_from_possibilities(@game.guess)
+        check_guess_against_saved_guesses(picked)
+      end
+    end
+
+    def check_guess_against_saved_guesses(guess)
+      if @saved_guesses.include?(guess)
+        # @game.guess = @game.guess.shuffle
+        picked = pick_4_colors_from_possibilities(@game.guess)
+        check_guess_against_saved_guesses(picked)
+      else
+        puts 'saved guesses:'
+        @saved_guesses.map { |i| puts "#{i}\n" }
+        guess
       end
     end
 
@@ -217,7 +238,10 @@ module Mastermind
       @num_okay = count_num_of_element('o')
       @num_perfect = count_num_of_element('*')
       remove_possibilities_if_all_wrong_or_no_wrong
+      remove_possibilities_if_okay_and_no_perfect
       puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"
+      puts 'possibilities:'
+      @possibilities.each_index { |i| puts "#{i}: #{@possibilities[i]}\n" }
     end
 
     def count_num_of_element(indicator_symbol)
@@ -227,14 +251,19 @@ module Mastermind
     def remove_possibilities_if_all_wrong_or_no_wrong
       if @num_wrong == 4
         # remove the guess colors from the possibilities array
-        @possibilities = @possibilities.map { |i| i - @game.guess.uniq }
+        @possibilities = @possibilities.map { |possibility_arr| possibility_arr - @game.guess.uniq }
       elsif @num_wrong.zero?
         @all_colors_found = true
+        @saved_guesses.push(@game.guess.dup)
         # remove all except the guess colors from the possibilities array
-        @possibilities = @possibilities.map { |i| @game.guess.uniq & i }
+        @possibilities = @possibilities.map { |possibility_arr| @game.guess.uniq & possibility_arr }
       end
-      puts 'possibilities:'
-      @possibilities.map { |i| puts "#{i}\n" }
+    end
+
+    def remove_possibilities_if_okay_and_no_perfect
+      return unless @num_okay.positive? && @num_perfect.zero?
+
+      @possibilities.each_index { |index| @possibilities[index].delete(@game.guess[index]) }
     end
 
     def first_three_guesses
