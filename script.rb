@@ -274,10 +274,8 @@ module Mastermind
 
     def first_three_guesses
       guesses = []
-      i = 0
-      while i < COLORS.length - 1
-        guesses.push([COLORS[i][0], COLORS[i][0], COLORS[i + 1][0], COLORS[i + 1][0]])
-        i += 2
+      COLORS.each_slice(2) do |color1, color2|
+        guesses.push([color1[0], color1[0], color2[0], color2[0]])
       end
       guesses
     end
