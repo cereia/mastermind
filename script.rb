@@ -173,6 +173,7 @@ module Mastermind
       @num_okay = 0
       @num_perfect = 0
       @all_colors_found = false
+      @colors_found = 0
       @possibilities = []
       create_possibilities_array
     end
@@ -216,7 +217,6 @@ module Mastermind
 
     def check_guess_against_saved_guesses(guess)
       if @saved_guesses.include?(guess)
-        # @game.guess = @game.guess.shuffle
         picked = pick_4_colors_from_possibilities(@game.guess)
         check_guess_against_saved_guesses(picked)
       else
@@ -230,12 +230,24 @@ module Mastermind
       @num_wrong = count_num_of_element('x')
       @num_okay = count_num_of_element('o')
       @num_perfect = count_num_of_element('*')
+      @colors_found += @num_okay += @num_perfect if @game.round < 4
+      @all_colors_found = true if @colors_found == 4
+      remove_possibilities
+    end
+
+    def remove_possibilities
+      remove_third_guaranteed_guess_colors_if_all_colors_are_found_before_round3
       remove_if_all_wrong_or_no_wrong
       remove_if_okay_and_no_perfect if @num_okay.positive? && @num_perfect.zero?
-      remove_if_perfect_and_no_okay if @game.round < 4 && @num_perfect.positive? && @num_okay.zero?
-      puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"   # for testing only
-      puts 'possibilities:'                                             # for testing only
-      @possibilities.each_index { |i| puts "#{i}: #{@possibilities[i]}\n" }
+      remove_if_perfect_and_no_okay if @colors_found == 4 && @num_perfect.positive? && @num_okay.zero?
+      # puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"   # for testing only
+      @possibilities.each_index { |i| puts "possibilities #{i}: #{@possibilities[i]}\n" }
+    end
+
+    def remove_third_guaranteed_guess_colors_if_all_colors_are_found_before_round3
+      return unless @all_colors_found && @game.round < 3
+
+      @possibilities.map! { |possibility_arr| possibility_arr - first_three_guesses[2].uniq }
     end
 
     def count_num_of_element(indicator_symbol)
@@ -245,11 +257,11 @@ module Mastermind
     def remove_if_all_wrong_or_no_wrong
       if @num_wrong == 4
         # remove the guess colors from the possibilities array
-        @possibilities = @possibilities.map { |possibility_arr| possibility_arr - @game.guess.uniq }
+        @possibilities.map! { |possibility_arr| possibility_arr - @game.guess.uniq }
       elsif @num_wrong.zero?
         @all_colors_found = true
         # remove all except the guess colors from the possibilities array
-        @possibilities = @possibilities.map { |possibility_arr| @game.guess.uniq & possibility_arr }
+        @possibilities.map! { |possibility_arr| @game.guess.uniq & possibility_arr }
       end
     end
 
