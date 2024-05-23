@@ -189,12 +189,6 @@ module Mastermind
       arr
     end
 
-    # if indicator shows all x -> remove letter(s) from all possibilities
-    # if indicator shows xo/oo -> remove letter(s) from possibilities of letter's current index
-    #   [rrgg] -> [xoox] -> remove r from 1 and 2; remove g from 3 and 4
-    # if indicator shows *x/** -> remove letter(s) from possibilities that aren't letter's index
-    #   [rrgg] -> [**xx] -> remove r from 3/4; remove g from 1/2
-
     # after removing possibilities/first 3 guesses: has to pick a certain number of colors per pair
     # code = [rggc]
     # [bbcc] -> [xxx*] -> pick 1 color
@@ -204,7 +198,7 @@ module Mastermind
 
     def make_guess
       if @game.round < 4 && @all_colors_found == false
-        @game.guess = first_three_guesses[@game.round - 1]
+        @game.guess = first_3_guesses[@game.round - 1]
       # elsif @all_colors_found == true
       #   check_guess_against_saved_guesses(@game.guess.shuffle!)
       else
@@ -220,8 +214,8 @@ module Mastermind
         picked = pick_4_colors_from_possibilities(@game.guess)
         check_guess_against_saved_guesses(picked)
       else
-        puts 'saved guesses:'                                     # for testing only
-        @saved_guesses.map { |i| puts "#{i}\n" }                  # for testing only
+        # puts 'saved guesses:'                                     # for testing only
+        # @saved_guesses.map { |i| puts "#{i}\n" }                  # for testing only
         guess
       end
     end
@@ -230,7 +224,7 @@ module Mastermind
       @num_wrong = count_num_of_element('x')
       @num_okay = count_num_of_element('o')
       @num_perfect = count_num_of_element('*')
-      @colors_found += @num_okay += @num_perfect if @game.round < 4
+      @colors_found += @num_okay && @colors_found += @num_perfect if @game.round < 4
       @all_colors_found = true if @colors_found == 4
       remove_possibilities
     end
@@ -240,14 +234,15 @@ module Mastermind
       remove_if_all_wrong_or_no_wrong
       remove_if_okay_and_no_perfect if @num_okay.positive? && @num_perfect.zero?
       remove_if_perfect_and_no_okay if @colors_found == 4 && @num_perfect.positive? && @num_okay.zero?
-      # puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"   # for testing only
+      puts "\nnum colors to pick #{@num_okay + @num_perfect}"
+      puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"   # for testing only
       @possibilities.each_index { |i| puts "possibilities #{i}: #{@possibilities[i]}\n" }
     end
 
     def remove_third_guaranteed_guess_colors_if_all_colors_are_found_before_round3
       return unless @all_colors_found && @game.round < 3
 
-      @possibilities.map! { |possibility_arr| possibility_arr - first_three_guesses[2].uniq }
+      @possibilities.map! { |possibility_arr| possibility_arr - first_3_guesses[@game.round - 1].uniq }
     end
 
     def count_num_of_element(indicator_symbol)
@@ -284,7 +279,7 @@ module Mastermind
       end
     end
 
-    def first_three_guesses
+    def first_3_guesses
       guesses = []
       COLORS.each_slice(2) do |color1, color2|
         guesses.push([color1[0], color1[0], color2[0], color2[0]])
