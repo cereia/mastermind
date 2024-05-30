@@ -67,6 +67,8 @@ module Mastermind
       else
         create_indicator
         puts "*: correct\no: correct color\nx: incorrect\nIndicator: #{@indicator}"
+        breaker.count_num_of_elements_in_indicator if breaker.instance_of?(Computer)
+        puts "is sc still here? #{breaker.possibilities.include?(@secret_code)} #{breaker.possibilities.index(@secret_code)}" if breaker.instance_of?(Computer) # for testing only
         puts "That wasn't it. Please try again! #{rounds_left} guesses left!"
       end
     end
@@ -165,12 +167,16 @@ module Mastermind
 
   # computer class to hold all computer player information and methods
   class Computer < Player
+    attr_reader :possibilities # for testing only  => to check that code is still in possibilities array
+
     def initialize(game)
       super(game)
+      @num_okay = 0
+      @num_perfect = 0
+      @num_wrong = 0
       @possibilities = create_possibilities_array
       puts @possibilities.length # 1296 possibilities in total
-      @saved_guesses = []
-      puts "poss: #{@possibilities}"
+      # puts "poss: #{@possibilities}"
     end
 
     def create_possibilities_array
@@ -192,9 +198,34 @@ module Mastermind
     def make_guess
       if @game.round < 4
         first_3_guesses(@game.round - 1)
+      else
+        @game.guess = @possibilities.sample(1).flatten
       end
-      @saved_guesses.push(@game.guess.dup)
-      @game.guess
+    end
+
+    def count_num_of_elements_in_indicator
+      @num_wrong = count_num_of_element('x')
+      # @num_okay = count_num_of_element('o')
+      # @num_perfect = count_num_of_element('*')
+      remove_possibilities if @num_wrong.positive?
+    end
+
+    def count_num_of_element(indicator_symbol)
+      @game.indicator.count { |element| element.include?(indicator_symbol)}
+    end
+
+    def remove_possibilities
+      # reject possibilities depending on how many wrong colors there are in the guess
+      @possibilities.reject! do |poss|
+        if @num_wrong == 4
+          @game.guess.any? { |color| poss.include?(color) }
+        elsif @num_wrong.positive?
+          poss.all? { |color| poss.count(color) <= @game.guess.count(color) }
+        end
+      end
+      puts "\nnum colors to pick #{@num_okay + @num_perfect}"
+      puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"   # for testing only
+      puts "num of possibilities left: #{@possibilities.length}"
     end
 
     def first_3_guesses(index)
