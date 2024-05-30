@@ -169,19 +169,6 @@ module Mastermind
     def initialize(game)
       super(game)
       @saved_guesses = []
-      @num_wrong = 0
-      @num_okay = 0
-      @num_perfect = 0
-      @all_colors_found = false
-      @colors_found = 0
-      @possibilities = []
-      create_possibilities_array
-    end
-
-    def create_possibilities_array
-      0.upto(3) do |i|
-        @possibilities[i] = COLORS.map { |color| color[0] }
-      end
     end
 
     def sc_generator(arr)
@@ -190,92 +177,12 @@ module Mastermind
     end
 
     def make_guess
-      if @game.round < 4 && @all_colors_found == false
+      if @game.round < 4
         first_3_guesses(@game.round - 1)
-      # elsif @all_colors_found == true
-      #   check_guess_against_saved_guesses(@game.guess.shuffle!)
-      else
-        check_guess_against_saved_guesses(pick_4_colors_from_possibilities(@game.guess))
       end
       @saved_guesses.push(@game.guess.dup)
       @game.guess
     end
-
-    def check_guess_against_saved_guesses(guess)
-      if @saved_guesses.include?(guess)
-        picked = pick_4_colors_from_possibilities(@game.guess)
-        check_guess_against_saved_guesses(picked)
-      else
-        # puts 'saved guesses:'                                     # for testing only
-        # @saved_guesses.map { |i| puts "#{i}\n" }                  # for testing only
-        guess
-      end
-    end
-
-    def count_num_of_elements_in_indicator
-      @num_wrong = count_num_of_element('x')
-      @num_okay = count_num_of_element('o')
-      @num_perfect = count_num_of_element('*')
-      @colors_found += @num_okay if @game.round < 4 && @colors_found < 4
-      @colors_found += @num_perfect if @game.round < 4 && @colors_found < 4
-      puts "colors found: #{@colors_found}"
-      @all_colors_found = true if @colors_found == 4
-      remove_possibilities
-    end
-
-    def remove_possibilities
-      remove_if_all_wrong_or_no_wrong
-      remove_if_okay_and_no_perfect
-      remove_third_guaranteed_guess_colors_if_all_colors_are_found_before_round3
-      # remove_if_perfect_and_no_okay
-      puts "\nnum colors to pick #{@num_okay + @num_perfect}"
-      puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"   # for testing only
-      @possibilities.each_index { |i| puts "possibilities #{i}: #{@possibilities[i]}\n" }
-    end
-
-    def remove_third_guaranteed_guess_colors_if_all_colors_are_found_before_round3
-      return unless @all_colors_found && @game.round < 3
-
-      @possibilities.map! { |possibility_arr| possibility_arr - first_3_guesses(@game.round).uniq }
-    end
-
-    def count_num_of_element(indicator_symbol)
-      @game.indicator.count { |element| element.include?(indicator_symbol)}
-    end
-
-    def remove_if_all_wrong_or_no_wrong
-      if @num_wrong == 4
-        # remove the guess colors from the possibilities array
-        @possibilities.map! { |possibility_arr| possibility_arr - @game.guess.uniq }
-      elsif @num_wrong.zero?
-        @all_colors_found = true
-        # remove all except the guess colors from the possibilities array
-        @possibilities.map! { |possibility_arr| @game.guess.uniq & possibility_arr }
-      end
-    end
-
-    def remove_if_okay_and_no_perfect
-      return unless @num_okay.positive? && @num_perfect.zero?
-
-      @possibilities.each_index { |index| @possibilities[index].delete(@game.guess[index]) }
-    end
-
-    # def remove_if_perfect_and_no_okay
-    #   return unless @colors_found == 4 && @game.round > 3 && @num_perfect.positive? && @num_okay.zero?
-
-    #   hash = create_hash_of_perfect_colors_and_indices
-    #   hash.each do |key, val|
-    #     @possibilities.each_index { |idx| @possibilities[idx].delete(key) unless val.include?(idx) }
-    #   end
-    # end
-
-    # def create_hash_of_perfect_colors_and_indices
-    #   @game.guess.each_with_object({}) do |value, result|
-    #     arr = []
-    #     @game.guess.each_index { |idx| result[value] = arr.push(idx) if value == @game.guess[idx] }
-    #     result
-    #   end
-    # end
 
     def first_3_guesses(index)
       guesses = []
@@ -283,11 +190,6 @@ module Mastermind
         guesses.push([color1[0], color1[0], color2[0], color2[0]])
       end
       @game.guess = guesses[index]
-    end
-
-    def pick_4_colors_from_possibilities(arr)
-      0.upto(3) { |i| arr[i] = @possibilities[i][rand(0..@possibilities[i].length - 1)] }
-      arr
     end
 
     def to_s
