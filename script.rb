@@ -173,7 +173,7 @@ module Mastermind
       @num_okay = 0
       @num_perfect = 0
       @all_colors_found = false
-      # @colors_found = 0
+      @colors_found = 0
       @possibilities = []
       create_possibilities_array
     end
@@ -189,21 +189,13 @@ module Mastermind
       arr
     end
 
-    # after removing possibilities/first 3 guesses: has to pick a certain number of colors per pair
-    # code = [rggc]
-    # [bbcc] -> [xxx*] -> pick 1 color
-    # [ggmm] -> [*oxx] -> pick 2 colors
-    # [rryy] -> [*xxx] -> pick 1 color
-    # guess 4 ex: [bggy] -> alphabetical and follows pick rules
-
     def make_guess
       if @game.round < 4 && @all_colors_found == false
-        @game.guess = first_3_guesses[@game.round - 1]
+        first_3_guesses(@game.round - 1)
       # elsif @all_colors_found == true
-        # check_guess_against_saved_guesses(@game.guess.shuffle!)
+      #   check_guess_against_saved_guesses(@game.guess.shuffle!)
       else
-        picked = pick_4_colors_from_possibilities(@game.guess)
-        check_guess_against_saved_guesses(picked)
+        check_guess_against_saved_guesses(pick_4_colors_from_possibilities(@game.guess))
       end
       @saved_guesses.push(@game.guess.dup)
       @game.guess
@@ -224,17 +216,17 @@ module Mastermind
       @num_wrong = count_num_of_element('x')
       @num_okay = count_num_of_element('o')
       @num_perfect = count_num_of_element('*')
-      # @colors_found += @num_okay if @game.round < 4 && @colors_found < 4
-      # @colors_found += @num_perfect if @game.round < 4 && @colors_found < 4
-      # puts "colors found: #{@colors_found}"
-      # @all_colors_found = true if @colors_found == 4
+      @colors_found += @num_okay if @game.round < 4 && @colors_found < 4
+      @colors_found += @num_perfect if @game.round < 4 && @colors_found < 4
+      puts "colors found: #{@colors_found}"
+      @all_colors_found = true if @colors_found == 4
       remove_possibilities
     end
 
     def remove_possibilities
-      remove_third_guaranteed_guess_colors_if_all_colors_are_found_before_round3
       remove_if_all_wrong_or_no_wrong
-      remove_if_okay_and_no_perfect if @num_okay.positive? && @num_perfect.zero?
+      remove_if_okay_and_no_perfect
+      remove_third_guaranteed_guess_colors_if_all_colors_are_found_before_round3
       # remove_if_perfect_and_no_okay
       puts "\nnum colors to pick #{@num_okay + @num_perfect}"
       puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"   # for testing only
@@ -244,7 +236,7 @@ module Mastermind
     def remove_third_guaranteed_guess_colors_if_all_colors_are_found_before_round3
       return unless @all_colors_found && @game.round < 3
 
-      @possibilities.map! { |possibility_arr| possibility_arr - first_3_guesses[@game.round].uniq }
+      @possibilities.map! { |possibility_arr| possibility_arr - first_3_guesses(@game.round).uniq }
     end
 
     def count_num_of_element(indicator_symbol)
@@ -263,6 +255,8 @@ module Mastermind
     end
 
     def remove_if_okay_and_no_perfect
+      return unless @num_okay.positive? && @num_perfect.zero?
+
       @possibilities.each_index { |index| @possibilities[index].delete(@game.guess[index]) }
     end
 
@@ -275,20 +269,20 @@ module Mastermind
     #   end
     # end
 
-    def create_hash_of_perfect_colors_and_indices
-      @game.guess.each_with_object({}) do |value, result|
-        arr = []
-        @game.guess.each_index { |idx| result[value] = arr.push(idx) if value == @game.guess[idx] }
-        result
-      end
-    end
+    # def create_hash_of_perfect_colors_and_indices
+    #   @game.guess.each_with_object({}) do |value, result|
+    #     arr = []
+    #     @game.guess.each_index { |idx| result[value] = arr.push(idx) if value == @game.guess[idx] }
+    #     result
+    #   end
+    # end
 
-    def first_3_guesses
+    def first_3_guesses(index)
       guesses = []
       COLORS.each_slice(2) do |color1, color2|
         guesses.push([color1[0], color1[0], color2[0], color2[0]])
       end
-      guesses
+      @game.guess = guesses[index]
     end
 
     def pick_4_colors_from_possibilities(arr)
