@@ -67,7 +67,6 @@ module Mastermind
       else
         create_indicator
         puts "*: correct\no: correct color\nx: incorrect\nIndicator: #{@indicator}"
-        breaker.count_num_of_elements_in_indicator if breaker.instance_of?(Computer)
         puts "That wasn't it. Please try again! #{rounds_left} guesses left!"
       end
     end
@@ -168,7 +167,21 @@ module Mastermind
   class Computer < Player
     def initialize(game)
       super(game)
+      @possibilities = create_possibilities_array
+      puts @possibilities.length # 1296 possibilities in total
       @saved_guesses = []
+      puts "poss: #{@possibilities}"
+    end
+
+    def create_possibilities_array
+      arr = Array(1111..6666)
+      arr.map! do |arr_of_nums|
+        arr_of_nums.to_s.split('')
+                   .map do |num_string|
+                     COLORS[num_string.to_i - 1][0] if num_string.to_i < 7 && !num_string.to_i.zero?
+                   end
+      end
+      arr.reject { |possibility| possibility.include?(nil)}
     end
 
     def sc_generator(arr)
