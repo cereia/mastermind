@@ -174,6 +174,7 @@ module Mastermind
       @num_okay = 0
       @num_perfect = 0
       @num_wrong = 0
+      @saved_combos = []
       @all_colors_found = false
       @possibilities = create_possibilities_array
       puts @possibilities.length # 1296 possibilities in total
@@ -188,7 +189,7 @@ module Mastermind
                      COLORS[num_string.to_i - 1][0] if num_string.to_i < 7 && !num_string.to_i.zero?
                    end
       end
-      arr.reject { |possibility| possibility.include?(nil)}
+      arr.reject { |poss| poss.include?(nil)}
     end
 
     def sc_generator(arr)
@@ -202,6 +203,8 @@ module Mastermind
       else
         @game.guess = @possibilities.sample(1).flatten
       end
+      @possibilities.reject! { |poss| poss == @game.guess }
+      @game.guess
     end
 
     def count_num_of_elements_in_indicator
@@ -209,6 +212,7 @@ module Mastermind
       @num_okay = count_num_of_element('o')
       @num_perfect = count_num_of_element('*')
       remove_possibilities_based_on_num_wrong
+      remove_possibilities_if_okay_and_no_perfect if @num_okay.positive? && @num_perfect.zero?
       @all_colors_found = true if @num_wrong.zero?
       puts "num of possibilities left: #{@possibilities.length}"
     end
@@ -228,6 +232,37 @@ module Mastermind
         else
           !poss.all? { |color| poss.count(color) <= guess.count(color) }
         end
+      end
+    end
+
+    def remove_possibilities_if_okay_and_no_perfect
+      @saved_combos = save_combos_to_remove
+      # puts "saved: #{@saved_combos}"
+      @possibilities.reject! do |poss|
+        @saved_combos.include?(poss)
+      end
+    end
+
+    def save_combos_to_remove
+      hash = create_hash_of_colors_and_indices
+      combos = []
+      @possibilities.map do |poss|
+        poss.each_with_index do |color, idx|
+          next unless !hash[color].nil? && hash[color].include?(idx)
+
+          combos.push(poss)
+        end
+        combos.uniq!
+      end
+      combos
+    end
+
+    def create_hash_of_colors_and_indices
+      # create a hash that contains the color letters and respective indices of the current guess
+      @game.guess.each_with_object({}) do |value, result|
+        arr = []
+        @game.guess.each_index { |idx| result[value] = arr.push(idx) if value == @game.guess[idx] }
+        result
       end
     end
 
