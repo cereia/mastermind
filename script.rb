@@ -174,6 +174,7 @@ module Mastermind
       @num_okay = 0
       @num_perfect = 0
       @num_wrong = 0
+      @all_colors_found = false
       @possibilities = create_possibilities_array
       puts @possibilities.length # 1296 possibilities in total
       # puts "poss: #{@possibilities}"
@@ -196,7 +197,7 @@ module Mastermind
     end
 
     def make_guess
-      if @game.round < 4
+      if @game.round < 4 && @all_colors_found == false
         first_3_guesses(@game.round - 1)
       else
         @game.guess = @possibilities.sample(1).flatten
@@ -205,27 +206,29 @@ module Mastermind
 
     def count_num_of_elements_in_indicator
       @num_wrong = count_num_of_element('x')
-      # @num_okay = count_num_of_element('o')
-      # @num_perfect = count_num_of_element('*')
-      remove_possibilities if @num_wrong.positive?
+      @num_okay = count_num_of_element('o')
+      @num_perfect = count_num_of_element('*')
+      remove_possibilities_based_on_num_wrong
+      @all_colors_found = true if @num_wrong.zero?
+      puts "num of possibilities left: #{@possibilities.length}"
     end
 
     def count_num_of_element(indicator_symbol)
       @game.indicator.count { |element| element.include?(indicator_symbol)}
     end
 
-    def remove_possibilities
+    def remove_possibilities_based_on_num_wrong
       # reject possibilities depending on how many wrong colors there are in the guess
+      guess = @game.guess.dup
       @possibilities.reject! do |poss|
         if @num_wrong == 4
-          @game.guess.any? { |color| poss.include?(color) }
+          guess.any? { |color| poss.include?(color) }
         elsif @num_wrong.positive?
-          poss.all? { |color| poss.count(color) <= @game.guess.count(color) }
+          poss.all? { |color| poss.count(color) <= guess.count(color) }
+        else
+          !poss.all? { |color| poss.count(color) <= guess.count(color) }
         end
       end
-      puts "\nnum colors to pick #{@num_okay + @num_perfect}"
-      puts "x's #{@num_wrong}\no's #{@num_okay}\n*'s #{@num_perfect}"   # for testing only
-      puts "num of possibilities left: #{@possibilities.length}"
     end
 
     def first_3_guesses(index)
