@@ -4,16 +4,17 @@
 # 6 colors
 # code is 4 long with a specific order
 # after every guess, there has to be an indicator
-#   correct = black/colored indicator (*)
+#   correct = black/colored indicator (✓)
 #   correct color, wrong place = white indicator (o)
 #   wrong = nothing or (x)
 #   show an array with indicators with shuffle called so indicator doesn't give away info
 #   eg: code: [r, r, g, c] guess: [r, g, b, b]
-#       indicator: [*, o, x, x] indicator.shuffle: [x, o, x, *]
+#       indicator: [✓, o, x, x] indicator.shuffle: [x, o, x, ✓]
 
 # module to contain all the code necessary for the game
 module Mastermind
   COLORS = %w[blue cyan green magenta red yellow].freeze
+
   # game class that holds methods related to interactivity and playing the game
   class Game
     attr_reader :maker, :breaker, :round, :indicator
@@ -29,16 +30,16 @@ module Mastermind
     def determine_maker
       puts 'Would you like to be the codemaker? Y/N'
       answer = gets.chomp
-      if answer.match(/y/i)
-        create_board(Human)
-      elsif answer.match(/n/i)
-        create_board(Computer)
+      if answer.match?(/y/i)
+        create_game(Human)
+      elsif answer.match?(/n/i)
+        create_game(Computer)
       else
         determine_maker
       end
     end
 
-    def create_board(maker)
+    def create_game(maker)
       @maker = maker.new(self)
       @breaker = @maker.instance_of?(Human) ? Computer.new(self) : Human.new(self)
       puts "Codemaker: #{@maker}\nCodebreaker: #{@breaker}"
@@ -66,9 +67,8 @@ module Mastermind
         puts "That was the last round :(\nHere's the #{show_code}"
       else
         create_indicator
-        puts "*: correct\no: correct color\nx: incorrect\nIndicator: #{@indicator}"
+        puts "✓: correct\no: correct color\nx: incorrect\nIndicator: #{@indicator}"
         breaker.count_num_of_elements_in_indicator if breaker.instance_of?(Computer)
-        puts "is sc still here? #{breaker.possibilities.include?(@secret_code)} #{breaker.possibilities.index(@secret_code)}" if breaker.instance_of?(Computer) # for testing only
         puts "That wasn't it. Please try again! #{rounds_left} guesses left!"
       end
     end
@@ -82,11 +82,12 @@ module Mastermind
       @indicator.shuffle!
     end
 
+    # look for matches where color and index of the guess match the secret code
     def exact_matches(sc_dup, guess_dup)
       @indicator = []
       guess_dup.each_index do |index|
         if guess_dup[index] == @secret_code[index]
-          @indicator.push('*')
+          @indicator.push('✓')
           guess_dup[index] = nil
           sc_dup[index] = nil
         end
@@ -94,6 +95,7 @@ module Mastermind
       end
     end
 
+    # look for matches where color is correct, but index doesn't match the secret code's
     def non_exact_matches(sc_dup, guess_dup)
       guess_dup.compact.each do |element|
         if sc_dup.include?(element)
@@ -109,10 +111,10 @@ module Mastermind
     def restart
       puts 'Would you like to play again? Y/N'
       answer = gets.chomp
-      restart unless answer.match(/y|n/i)
-      if answer.match(/y/i)
+      restart unless answer.match?(/y|n/i)
+      if answer.match?(/y/i)
         Game.new
-      elsif answer.match(/n/i)
+      elsif answer.match?(/n/i)
         puts 'Thank you for playing!'
       end
     end
@@ -137,12 +139,12 @@ module Mastermind
   class Human < Player
     def sc_getter
       puts "#{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
-      do_four_times([])
+      make_a_4_color_combo([])
     end
 
     def checked_color_input
       color = gets.chomp
-      if color.match(/r|g|b|m|c|y/i)
+      if color.match?(/r|g|b|m|c|y/i)
         color[0]
       else
         checked_color_input
@@ -152,10 +154,10 @@ module Mastermind
     def make_guess
       puts 'Please guess the secret code.'
       puts "#{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
-      do_four_times(@game.guess)
+      make_a_4_color_combo(@game.guess)
     end
 
-    def do_four_times(arr)
+    def make_a_4_color_combo(arr)
       0.upto(3) { |i| arr[i] = checked_color_input }
       arr
     end
@@ -167,8 +169,6 @@ module Mastermind
 
   # computer class to hold all computer player information and methods
   class Computer < Player
-    attr_reader :possibilities # for testing only  => to check that code is still in possibilities array
-
     def initialize(game)
       super(game)
       @num_okay = 0
@@ -208,12 +208,11 @@ module Mastermind
     def count_num_of_elements_in_indicator
       @num_wrong = count_num_of_element('x')
       @num_okay = count_num_of_element('o')
-      @num_perfect = count_num_of_element('*')
+      @num_perfect = count_num_of_element('✓')
       remove_possibilities_based_on_num_wrong
       remove_possibilities_if_okay_and_no_perfect if @num_okay.positive? && @num_perfect.zero?
       remove_possibilities_based_on_num_of_colors_matched_in_guess if (@num_okay + @num_perfect).positive?
       @all_colors_found = true if @num_wrong.zero?
-      puts "num of possibilities left: #{@possibilities.length}"
     end
 
     def count_num_of_element(indicator_symbol)
@@ -225,13 +224,21 @@ module Mastermind
       guess = @game.guess.dup
       @possibilities.reject! do |poss|
         if @num_wrong == 4
+          # remove if the possibility contains any element of the guess when all guess colors are wrong
           guess.any? { |color| poss.include?(color) }
         elsif @num_wrong.positive?
-          poss.all? { |color| poss.count(color) <= guess.count(color) }
+          # remove if the possibility contains all elements of the guess when some guess colors are wrong
+          contains_all?(poss, guess)
         else
-          !poss.all? { |color| poss.count(color) <= guess.count(color) }
+          # remove if the possibility does not contain every element of the guess when all guess colors are right
+          !contains_all?(poss, guess)
         end
       end
+    end
+
+    # returns true if the possibility contains all elements of the guess
+    def contains_all?(possibility, guess)
+      possibility.all? { |color| possibility.count(color) <= guess.count(color) }
     end
 
     def remove_possibilities_if_okay_and_no_perfect
@@ -241,6 +248,7 @@ module Mastermind
       end
     end
 
+    # create array of possibilities that need to be removed based on okay marks and 0 perfects
     def save_combos_to_remove
       hash = create_hash_of_colors_and_indices
       combos = []
@@ -266,6 +274,7 @@ module Mastermind
 
     def remove_possibilities_based_on_num_of_colors_matched_in_guess
       # remove the possibility if the possibility doesn't match the number of okay and perfects in the current guess
+      # guess [bcmy] has 2 right colors => keep: [ymgg] remove: [grgm]
       num_of_ok_and_perfect = @num_okay + @num_perfect
       @possibilities.select! { |poss| (poss - @game.guess).length <= 4 - num_of_ok_and_perfect }
     end
