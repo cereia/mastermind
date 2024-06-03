@@ -6,7 +6,7 @@
 # after every guess, there has to be an indicator
 #   correct = black/colored indicator (*)
 #   correct color, wrong place = white indicator (o)
-#   else = nothing or (x)
+#   wrong = nothing or (x)
 #   show an array with indicators with shuffle called so indicator doesn't give away info
 #   eg: code: [r, r, g, c] guess: [r, g, b, b]
 #       indicator: [*, o, x, x] indicator.shuffle: [x, o, x, *]
@@ -177,8 +177,6 @@ module Mastermind
       @saved_combos = []
       @all_colors_found = false
       @possibilities = create_possibilities_array
-      puts @possibilities.length # 1296 possibilities in total
-      # puts "poss: #{@possibilities}"
     end
 
     def create_possibilities_array
@@ -213,6 +211,7 @@ module Mastermind
       @num_perfect = count_num_of_element('*')
       remove_possibilities_based_on_num_wrong
       remove_possibilities_if_okay_and_no_perfect if @num_okay.positive? && @num_perfect.zero?
+      remove_possibilities_based_on_num_of_colors_matched_in_guess if (@num_okay + @num_perfect).positive?
       @all_colors_found = true if @num_wrong.zero?
       puts "num of possibilities left: #{@possibilities.length}"
     end
@@ -237,7 +236,6 @@ module Mastermind
 
     def remove_possibilities_if_okay_and_no_perfect
       @saved_combos = save_combos_to_remove
-      # puts "saved: #{@saved_combos}"
       @possibilities.reject! do |poss|
         @saved_combos.include?(poss)
       end
@@ -264,6 +262,12 @@ module Mastermind
         @game.guess.each_index { |idx| result[value] = arr.push(idx) if value == @game.guess[idx] }
         result
       end
+    end
+
+    def remove_possibilities_based_on_num_of_colors_matched_in_guess
+      # remove the possibility if the possibility doesn't match the number of okay and perfects in the current guess
+      num_of_ok_and_perfect = @num_okay + @num_perfect
+      @possibilities.select! { |poss| (poss - @game.guess).length <= 4 - num_of_ok_and_perfect }
     end
 
     def first_3_guesses(index)
