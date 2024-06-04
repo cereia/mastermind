@@ -44,7 +44,7 @@ module Mastermind
       @breaker = @maker.instance_of?(Human) ? Computer.new(self) : Human.new(self)
       puts "Codemaker: #{@maker}\nCodebreaker: #{@breaker}"
       puts "\n"
-      @secret_code = @maker.instance_of?(Computer) ? @maker.sc_generator([]) : @maker.sc_getter
+      @secret_code = @maker.instance_of?(Computer) ? @maker.sc_generator : @maker.sc_getter
       puts show_code if @maker.instance_of?(Human)
     end
 
@@ -53,6 +53,7 @@ module Mastermind
         puts "Round #{@round} guess: #{breaker.make_guess}"
         show_guess_and_secret_code_comparison_result(@secret_code == @guess)
         puts "\n"
+        sleep 1 if breaker.instance_of?(Computer)
         break if @secret_code == @guess
 
         @round += 1
@@ -68,7 +69,7 @@ module Mastermind
       else
         create_indicator
         puts "✓: correct\no: correct color\nx: incorrect\nIndicator: #{@indicator}"
-        breaker.count_num_of_elements_in_indicator if breaker.instance_of?(Computer)
+        breaker.count_and_remove_based_on_num_of_elements_in_indicator if breaker.instance_of?(Computer)
         puts "That wasn't it. Please try again! #{rounds_left} guesses left!"
       end
     end
@@ -138,28 +139,29 @@ module Mastermind
   # human class to hold all user information and methods
   class Human < Player
     def sc_getter
-      puts "#{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
-      make_a_4_color_combo([])
+      puts "#{COLORS}\nPlease choose 1-4.\nDuplicates are allowed.\nFirst character only!"
+      puts 'ex: br and brbr are accepted and equal brbr'
+      @game.guess = check_color_inputs
     end
 
-    def checked_color_input
-      color = gets.chomp
-      if color.match?(/r|g|b|m|c|y/i)
-        color[0]
+    # gets the colors the user wants to use and turns it from a string into a sanitized array
+    # then take the sanitized array and create a new array of 4 elements to use as the code
+    def check_color_inputs
+      colors = gets.chomp.split('')
+      colors.select! { |color| color.match?(/b|c|g|m|r|y/i) }
+      if colors.length.positive?
+        checked_arr = []
+        colors.map { |color| checked_arr.push(color) } while checked_arr.length < 4
+        checked_arr = checked_arr[0..3]
       else
-        checked_color_input
+        check_color_inputs
       end
     end
 
     def make_guess
       puts 'Please guess the secret code.'
-      puts "#{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
-      make_a_4_color_combo(@game.guess)
-    end
-
-    def make_a_4_color_combo(arr)
-      0.upto(3) { |i| arr[i] = checked_color_input }
-      arr
+      puts "Color list: #{COLORS}\nPlease choose 4.\nDuplicates are allowed.\nFirst character only!"
+      @game.guess = check_color_inputs
     end
 
     def to_s
@@ -179,6 +181,7 @@ module Mastermind
       @possibilities = create_possibilities_array
     end
 
+    # create an array of all 1296 possible combinations using numbers then repalce those numbers with color letters
     def create_possibilities_array
       arr = Array(1111..6666)
       arr.map! do |arr_of_nums|
@@ -190,22 +193,24 @@ module Mastermind
       arr.reject { |poss| poss.include?(nil)}
     end
 
-    def sc_generator(arr)
-      0.upto(3) { |i| arr[i] = COLORS[rand(0..5)][0] }
-      arr
+    # pick a possibility from possibilities array to act as code
+    def sc_generator
+      @possibilities.sample(1).flatten
     end
 
     def make_guess
       if @game.round < 4 && @all_colors_found == false
+        # first 3 rounds are guaranteed to be 1 of 3 guesses unless certain conditions are met
         first_3_guesses(@game.round - 1)
       else
-        @game.guess = @possibilities.sample(1).flatten
+        @game.guess = sc_generator
       end
+      # remove the current guess from possibilities array
       @possibilities.reject! { |poss| poss == @game.guess }
       @game.guess
     end
 
-    def count_num_of_elements_in_indicator
+    def count_and_remove_based_on_num_of_elements_in_indicator
       @num_wrong = count_num_of_element('x')
       @num_okay = count_num_of_element('o')
       @num_perfect = count_num_of_element('✓')
