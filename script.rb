@@ -214,9 +214,9 @@ module Mastermind
       @num_wrong = count_num_of_element('x')
       @num_okay = count_num_of_element('o')
       @num_perfect = count_num_of_element('✓')
-      remove_possibilities_based_on_num_wrong
-      remove_possibilities_if_okay_and_no_perfect if @num_okay.positive? && @num_perfect.zero?
-      remove_possibilities_based_on_num_of_colors_matched_in_guess if (@num_okay + @num_perfect).positive?
+      remove_based_on_num_wrong
+      remove_if_okay_and_no_perfect if @num_okay.positive? && @num_perfect.zero?
+      remove_based_on_num_of_colors_matched_in_guess if (@num_okay + @num_perfect).positive? && @num_wrong.positive?
       @all_colors_found = true if @num_wrong.zero?
     end
 
@@ -224,7 +224,7 @@ module Mastermind
       @game.indicator.count { |element| element.include?(indicator_symbol)}
     end
 
-    def remove_possibilities_based_on_num_wrong
+    def remove_based_on_num_wrong
       # reject possibilities depending on how many wrong colors there are in the guess
       guess = @game.guess.dup
       @possibilities.reject! do |poss|
@@ -246,7 +246,7 @@ module Mastermind
       possibility.all? { |color| possibility.count(color) <= guess.count(color) }
     end
 
-    def remove_possibilities_if_okay_and_no_perfect
+    def remove_if_okay_and_no_perfect
       @saved_combos = save_combos_to_remove
       @possibilities.reject! do |poss|
         @saved_combos.include?(poss)
@@ -277,7 +277,7 @@ module Mastermind
       end
     end
 
-    def remove_possibilities_based_on_num_of_colors_matched_in_guess
+    def remove_based_on_num_of_colors_matched_in_guess
       # remove the possibility if the possibility doesn't match the number of okay and perfects in the current guess
       # guess [bcmy] has 2 right colors => keep: [ymgg] remove: [grgm]
       num_of_ok_and_perfect = @num_okay + @num_perfect
